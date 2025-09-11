@@ -1,0 +1,93 @@
+<!DOCTYPE html public "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<html>
+<!-- Generated from TeX source by tex2page, v 4o, 
+     (c) Dorai Sitaram, http://www.cs.rice.edu/~dorai/tex2page -->
+<head><meta content="noindex,nofollow" name="robots"/>
+<title>
+Structure and Interpretation 
+of Computer Programs
+</title>
+<link href="book-Z-C.css" rel="stylesheet" title="default" type="text/css"/>
+<meta content="noindex,follow" name="robots"/>
+</head>
+<body>
+<p><div class="navigation">[Go to <span><a href="book.html">first</a>, <a href="book-Z-H-18.html">previous</a></span><span>, <a href="book-Z-H-20.html">next</a></span> page<span>;   </span><span><a href="book-Z-H-4.html#%_toc_start">contents</a></span><span><span>;   </span><a href="book-Z-H-38.html#%_index_start">index</a></span>]</div><p>
+<a name="%_chap_3"></a>
+<h1 class="chapter">
+<div class="chapterheading"><a href="book-Z-H-4.html#%_toc_%_chap_3">Chapter 3</a></div><p>
+<a href="book-Z-H-4.html#%_toc_%_chap_3">Modularity, Objects, and State</a></p></h1><p>
+<p>
+<p>
+<div align="right">
+<table width="60%"><tr><td>
+<span class="epigraph">
+<p>
+
+M<img border="0" src="ch3-Z-G-1.gif"/><p>
+<p><p><p>
+
+(Even while it changes, it stands still.)<p>
+<a name="%_idx_2820"></a>Heraclitus<p>
+
+Plus ça change, plus c'est la même chose.<p>
+<a name="%_idx_2822"></a>Alphonse Karr<p>
+</p></p></p></p></p></p></p></p></p></span>
+</td></tr></table>
+</div>
+<p><p>
+
+The preceding chapters introduced the basic elements from which
+programs are made.  We saw how primitive procedures and primitive data
+are combined to construct compound entities, and we learned that
+abstraction is vital in helping us to cope with the complexity of
+large systems.  But these tools are not sufficient for designing
+programs.  Effective program synthesis also requires organizational
+principles that can guide us in formulating the overall design of a
+program.  In particular, we need strategies to help us structure large
+systems so that they will be <em>modular</em>, that is, so that they can
+be divided ``naturally'' into coherent parts that can be separately
+developed and maintained.<p>
+<a name="%_idx_2824"></a><a name="%_idx_2826"></a>One powerful design strategy, which is particularly appropriate to the
+construction of programs for modeling physical systems, is to base the
+structure of our programs on the structure of the system being
+modeled.  For each object in the system, we construct a corresponding
+computational object.  For each system action, we define a symbolic
+operation in our computational model.  Our hope in using this strategy
+is that extending the model to accommodate new objects or new actions
+will require no strategic changes to the program, only the addition of
+the new symbolic analogs of those objects or actions.  If we have been
+successful in our system organization, then to add a new feature or
+debug an old one we will have to work on only a localized part of the
+system.<p>
+
+
+To a large extent, then, the way we organize a large program is
+dictated by our perception of the system to be modeled.  In this
+chapter we will investigate two prominent organizational strategies
+arising from two rather different ``world views'' of the structure of
+systems.  The first organizational strategy concentrates on <a name="%_idx_2828"></a><em>objects</em>, viewing a large system as a collection of distinct objects
+whose behaviors may change over time.  An alternative organizational
+strategy concentrates on the <a name="%_idx_2830"></a><em>streams</em> of information that flow in
+the system, much as an electrical engineer views a signal-processing
+system.<p>
+
+Both the object-based approach and the stream-processing approach
+raise significant linguistic issues in programming.
+With objects, we must be concerned with how a computational object can
+change and yet maintain its identity.  This will force us to abandon
+our old substitution model of computation
+(section <a href="book-Z-H-10.html#%_sec_1.1.5">1.1.5</a>) in favor of a more mechanistic
+but less theoretically tractable <a name="%_idx_2832"></a><em>environment model</em> of
+computation.  The difficulties of dealing with objects, change, and
+identity are a fundamental consequence of the need to grapple with
+time in our computational models.  These difficulties become even
+greater when we allow the possibility of concurrent execution of
+programs.  The stream approach can be most fully exploited when we
+decouple simulated time in our model from the order of the events that
+take place in the computer during evaluation.  We will accomplish this
+using a technique known as <a name="%_idx_2834"></a><em>delayed evaluation</em>.<p>
+<p><div class="navigation">[Go to <span><a href="book.html">first</a>, <a href="book-Z-H-18.html">previous</a></span><span>, <a href="book-Z-H-20.html">next</a></span> page<span>;   </span><span><a href="book-Z-H-4.html#%_toc_start">contents</a></span><span><span>;   </span><a href="book-Z-H-38.html#%_index_start">index</a></span>]</div><p>
+</p></p></p></p></p></p></p></p></p></p></p></p></p><a href="https://dafoster.net/projects/crystal-web-archiver/" id="cr-footer-banner" style="border-top: 2px #B40010 solid;background: #FFFAE1;font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-variant: initial;font-weight: initial;text-transform: none;font-size: 14px;color: #6c757d;line-height: 2.0;cursor: pointer;display: flex;align-items: center;justify-content: center;gap: 4px;clear: both;" target="_blank"><img height="24" onerror="this.style['display'] = 'none';" src="../../_/crystal/resources/appicon.png" width="24"/><span>This page was archived with Crystal</span><script>window.addEventListener('load', function() { const $1 = document.querySelector('#cr-footer-banner'); if (!$1) { return; } if (window !== window.top) { let $2 = false; if (window.name) { const $3 = window.parent.document.getElementsByName(window.name); if ($3.length === 1) { const $4 = $3[0]; if ($4.tagName === 'FRAME' && $4.parentElement.tagName === 'FRAMESET') { let $5 = $4; while (true) { if ($5.parentElement.tagName !== 'FRAMESET') { $2 = true; break; } if ($5.parentElement.attributes['rows'] !== undefined) { const $6 = $5.parentElement.children; if ($5 === $6[$6.length - 1]) { $5 = $5.parentElement; continue; } else { break; } } else if ($5.parentElement.attributes['cols'] !== undefined) { const $7 = Array.from($5.parentElement.children); const $8 = $7.indexOf($5); if ($8 === -1) { break; } const $9 = $5.parentElement.attributes['cols'].value.split(','); const $10 = $9.map((s) => parseInt(s.trim())); if ($9[$8].trim() === '*' || $10[$8] === Math.max.apply(null, $10)) { $5 = $5.parentElement; continue; } else { break; } } else { break; } } } } } if (!$2) { $1.style['display'] = 'none'; } } const $11 = $1.getBoundingClientRect(); const $12 = ($11.y < window.innerHeight - $11.height); if ($12) { $1.style['position'] = 'fixed'; $1.style['bottom'] = '0'; $1.style['left'] = '0'; $1.style['right'] = '0'; $1.style['z-index'] = '9999'; } const $13 = ( document.body.getBoundingClientRect().height < $11.height * 2 ); if ($13) { $1.style['display'] = 'none'; }
+});</script></a></body>
+</html>

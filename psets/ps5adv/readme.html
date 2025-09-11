@@ -1,0 +1,67 @@
+<html> <head><meta content="noindex,nofollow" name="robots"/>
+<title>Freshman advisor</title>
+</head>
+<body bgcolor="#FFFFFF">
+<blockquote>
+<h1>Freshman advisor</h1>
+<br/>
+<h3>Relevant sections in text: 2.3</h3>
+
+This assignment, which provides experience with symbol manipulation,
+explores the possibility of replacing the college advising system with
+a rather stupid conversational program, based loosely on Joseph
+Weizenbaum's famous "Doctor" program of the 1960's.  For this
+assignment, we provide a rule-based pattern matcher, so that the
+assignment serves as an introduction to rule-based programming as well
+as to symbol manipulation.
+
+<p>
+
+The pattern matcher here is quite sophisticated.  It uses success and
+failure continuations to implement backtracking for segment variables
+(much in the style of the AMB evaluator of section 4.3).  At this
+point in the course, we typically do not ask students to
+study the implementation of the pattern matcher, but only to use it as
+a black box, although we sometimes include a lecture on this material.
+We do not have explanatory notes for the matcher available, but you
+can find an explanation of a similar matcher in Abelson and Sussman,
+"Lisp: a Language for Stratified Design," <em>Byte Magazine</em>,
+February 1988.
+
+<h3>Files for download:</h3>
+<table border="1" cellpadding="5" cellspacing="5">
+<tr valign="top">
+<td> <code><a href="adv.tex">adv.tex</a></code>
+<td>TeX source for the assignment.
+
+<tr valign="top">
+<td><code><a href="adv.ps">adv.ps</a></code>
+<td>Postscript file for printing the assignment
+
+<tr valign="top">
+<td>
+<code><a href="adv.scm.html">adv.scm</a></code>
+<br/> <code><a href="match.scm.html">match.scm</a></code>
+<td>Scheme source code required for this assignment.
+
+
+</td></td></tr></td></td></tr></td></td></tr></table>
+<p>
+<br/>
+<font size="-1"><i>Copyright © 1985-1996 Massachusetts Institute of
+Technology</i>.<br/>  The material in these problem sets may be duplicated,
+modified, and redistributed for any non-commercial use in conjunction
+with the book <em>Structure and Interpretation of Computer
+Programs</em>.</font>
+<p>
+<hr/>
+<p>
+<a href="../../_/https/mitpress.mit.edu/sites/default/files/sicp/psets/index.html"><img src="../back.gif"/> Return to sample assignment page</a>
+<p>
+<a href="../../_/https/mitpress.mit.edu/sicp/index.html"><img src="../back.gif"/> Return to SICP page</a>
+<p>
+<br/>
+<i>Last modified 4 September 1996</i>
+</p></p></p></p></p></p></blockquote>
+<a href="https://dafoster.net/projects/crystal-web-archiver/" id="cr-footer-banner" style="border-top: 2px #B40010 solid;background: #FFFAE1;font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-variant: initial;font-weight: initial;text-transform: none;font-size: 14px;color: #6c757d;line-height: 2.0;cursor: pointer;display: flex;align-items: center;justify-content: center;gap: 4px;clear: both;" target="_blank"><img height="24" onerror="this.style['display'] = 'none';" src="../../_/crystal/resources/appicon.png" width="24"/><span>This page was archived with Crystal</span><script>window.addEventListener('load', function() { const $1 = document.querySelector('#cr-footer-banner'); if (!$1) { return; } if (window !== window.top) { let $2 = false; if (window.name) { const $3 = window.parent.document.getElementsByName(window.name); if ($3.length === 1) { const $4 = $3[0]; if ($4.tagName === 'FRAME' && $4.parentElement.tagName === 'FRAMESET') { let $5 = $4; while (true) { if ($5.parentElement.tagName !== 'FRAMESET') { $2 = true; break; } if ($5.parentElement.attributes['rows'] !== undefined) { const $6 = $5.parentElement.children; if ($5 === $6[$6.length - 1]) { $5 = $5.parentElement; continue; } else { break; } } else if ($5.parentElement.attributes['cols'] !== undefined) { const $7 = Array.from($5.parentElement.children); const $8 = $7.indexOf($5); if ($8 === -1) { break; } const $9 = $5.parentElement.attributes['cols'].value.split(','); const $10 = $9.map((s) => parseInt(s.trim())); if ($9[$8].trim() === '*' || $10[$8] === Math.max.apply(null, $10)) { $5 = $5.parentElement; continue; } else { break; } } else { break; } } } } } if (!$2) { $1.style['display'] = 'none'; } } const $11 = $1.getBoundingClientRect(); const $12 = ($11.y < window.innerHeight - $11.height); if ($12) { $1.style['position'] = 'fixed'; $1.style['bottom'] = '0'; $1.style['left'] = '0'; $1.style['right'] = '0'; $1.style['z-index'] = '9999'; } const $13 = ( document.body.getBoundingClientRect().height < $11.height * 2 ); if ($13) { $1.style['display'] = 'none'; }
+});</script></a></body> </html>

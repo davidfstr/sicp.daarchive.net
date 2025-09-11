@@ -1,0 +1,279 @@
+;;;;SMSCOPE.SCM   Code for Sample Pset
+;;; Procedures for Variable Binding with Lexical Scope in Substitution Model 
+
+                                        ;FOR THE COMPILER
+
+(declare (usual-integrations))
+(declare (integrate-external "smfresh"))
+(declare (integrate-external "smsyntax"))
+(declare (integrate-operator list-minus))
+(declare (integrate-operator filter))
+
+;;UTILITIES
+
+;;LIST-MINUS: (List(S),List(T)) --&gt; List(S)
+(define (list-minus l1 l2) ; returns members of l1 not in l2
+  (filter
+   (lambda (v) (not (member v l2)))
+   l1))
+
+;;FILTER: ((S --&gt; Sch-Bool), List(S)) --&gt; List(S)
+;;(filter pred lst) returns list of element in LST satisfying PRED
+
+(define filter (lambda (pred list) (list-transform-positive list pred)))
+
+
+;;FREE-VARIABLES: <meta content="noindex,nofollow" name="robots"/><body> --&gt; List(<variable>)
+;;Works only on kernel (desugared) bodies.
+
+(define (free-variables body)
+  (cond ((or (self-evaluating? body)
+             (symbol-expression? body)
+             (submodel-null? body))
+         '())
+        ((variable? body)
+         (list body))
+        ((combination? body)
+         (append-map free-variables
+                     (cons (operator-of body) (operands-of body))))
+        ((if? body)
+         (append-map free-variables
+                     (list (test-of-if body)
+                           (consequent-of body)
+                           (alternative-of body))))
+        ((lambda-expression? body)
+         (list-minus (free-variables (body-of-lambda body))
+                     (formals-of-lambda body)))
+        (else                           ;body with defs
+         (list-minus
+          (append
+           (append-map
+            (lambda (def)
+              (free-variables (expression-of-define def)))
+            (defines-of-body body))
+           (free-variables (expression-of-body body)))
+          (map variable-of-define (defines-of-body body))))))
+
+
+;;FRESH-RENAME: (List(<define>),<body>) --&gt; <body>
+;;assigns fresh names in the list of defines and in the body
+;;to variables defined in the list of define's.  Returns renamed defines
+;;appended to body
+
+(define (fresh-rename defs body)
+  (if (null? defs)
+      body
+      (let ((vrbls (map variable-of-define defs))
+            (exps (map expression-of-define defs)))
+        (let ((fresh-vars (map get-fresh vrbls)))
+          (let ((renaming-operator
+                 (make-renaming-operator
+                  (map list
+                       vrbls
+                       fresh-vars))))
+            (let ((renamed-body (renaming-operator body)))
+              (make-body
+               (append
+                (map make-define
+                     fresh-vars
+                     (map renaming-operator exps))
+                (defines-of-body renamed-body))
+               (expression-of-body renamed-body))))))))
+
+
+
+;;GET-FRESH: <symbol> --&gt; <symbol>
+;;  The procedure GET-FRESH is provided as a primitive procedure.  A call
+;;                    (get-fresh 'name)
+;;  returns a symbol of the form "name#<num>", which differs
+;;  from any symbol previously returned by a call to GET-FRESH.
+
+;;  For example,
+;;  (get-fresh 'z) ==&gt;z#0
+;;  (get-fresh 'z) ==&gt;z#1
+;;  (get-fresh 'hello) ==&gt;hello#0
+
+
+;;Renaming = List(<variable> x <variable>)
+;;Renaming-Operator: <body> --&gt; <body>
+
+;;MAKE-RENAMING-OPERATOR: Renaming --&gt; Renaming-Operator
+;;The renaming-operator returned will work only on kernel (desugared) bodies.
+
+(define (make-renaming-operator renaming)
+  (lambda (body)
+    (cond ((or (self-evaluating? body)
+               (symbol-expression? body)
+               (submodel-null? body))
+           body)
+          ((variable? body)
+           (let ((binding (assq body renaming)))
+             (if (pair? binding)
+                 (cadr binding)
+                 body)))
+          ((combination? body)
+           (make-combination
+            ((make-renaming-operator renaming) (operator-of body))
+            (map (make-renaming-operator renaming) (operands-of body))))
+          ((lambda-expression? body)
+           (let ((formals (formals-of-lambda body)))
+             (make-lambda
+              formals
+              ((let ((bindings-minus-formals
+                      (filter
+                       (lambda (binding)
+                         (not (memq (car binding) formals)))
+                       renaming)))
+                 (make-renaming-operator
+                  bindings-minus-formals))
+               (body-of-lambda body)))))
+          ((if? body)
+           (make-if
+            ((make-renaming-operator renaming) (test-of-if body))
+            ((make-renaming-operator renaming) (consequent-of body))
+            ((make-renaming-operator renaming) (alternative-of body))))
+          (else
+           (let ((defs (defines-of-body body)))
+             (let ((vars (map variable-of-define defs)))
+               (let ((renaming-operator
+                      (make-renaming-operator
+                       (filter
+                        (lambda (binding)
+                          (not (memq (car binding) vars)))
+                        renaming))))
+                 (make-body
+                  (map make-define
+                       vars
+                       (map renaming-operator (map expression-of-define defs)))
+                  (renaming-operator (expression-of-body body))))))))))
+
+
+;;ENFORCE: <body> --&gt; <body>
+;;Enforces the VARIABLE CONVENTION on a Scheme body:
+;;           no variable is bound more than once, and
+;;           no bound variable is the same as any free variable.
+;;Works only on kernel (desugared) bodies.
+
+(define (enforce body)
+  (cond ((or (self-evaluating? body)
+             (symbol-expression? body)
+             (variable? body)
+             (submodel-null? body))
+         body)
+        ((combination? body)
+         (make-combination
+          (enforce (operator-of body))
+          (map enforce (operands-of body))))
+        ((lambda-expression? body)
+         (let ((done-lam-body (enforce (body-of-lambda body)))
+               (formals (formals-of-lambda body)))
+           (let ((fresh-formals (map get-fresh formals)))
+             (make-lambda
+              fresh-formals
+              (let ((fresh-renaming (map list formals fresh-formals)))
+                ((make-renaming-operator fresh-renaming) done-lam-body))))))
+        ((if? body)
+         (make-if
+          (enforce (test-of-if body))
+          (enforce (consequent-of body))
+          (enforce (alternative-of body))))
+        (else
+         (let ((defs (defines-of-body body))
+               (done-exp (enforce (expression-of-body body))))
+           (let ((done-exps (map enforce (map expression-of-define defs)))
+                 (vars (map variable-of-define defs)))
+             (let ((fresh-vars (map get-fresh vars)))
+               (let ((fresh-renaming (map list vars fresh-vars)))
+                 (let ((renaming-operator (make-renaming-operator fresh-renaming)))
+                   (make-body
+                    (map make-define
+                         fresh-vars
+                         (map renaming-operator done-exps))
+                    (renaming-operator done-exp))))))))))
+
+
+;;  GET-CLEANED-VARIABLE: (<variable>, List(<variable>)) --&gt; <variable>
+;;  The procedure GET-CLEANED-VARIABLE is provided as a primitive.
+;;  (get-cleaned-variable 'prefix#<num> vars-to-avoid) returns a symbol
+;;  of the form "prefix", or "prefix#m" with minimal m, which is not in vars-to-avoid.
+;;  For example,
+;;  (get-cleaned-variable 'x#2 '()) ==&gt; x
+;;  (get-cleaned-variable 'x#2 '(x x#3 y)) ==&gt; x#0
+;;  (get-cleaned-variable 'x#2 '(x#0 x#3 x#1 y x)) ==&gt; x#2
+;;  (get-cleaned-variable 'y '(x#0 x#3 x#1 y x)) ==&gt; y#0
+
+
+;;  MAP-GET-CLEANED: (List(<variable>), List(<variable>)) --&gt; <variable>
+;;  (get-cleaned-variable vars vars-to-avoid) returns a list of symbols
+;;  of the same length as vars and with the same prefix as the corresponding
+;;  symbol in vars.  The symbols in the returned list have the minimum suffixes
+;;  such that they are distinct from each other and the symbols in vars-to-avoid.
+
+;;  For example,
+;;  (map-get-cleaned '(x#2 y y#2) '()) ==&gt; (x y y#0)
+;;  (map-get-cleaned '(x#2 y y#2) '(x#0 x#3 x#1 y x)) ==&gt; (x#2 y#0 y#1)
+
+
+(define (map-get-cleaned vars vars-to-avoid)
+  (if (null? vars)
+      '()
+      (let ((first-cleaned-var
+             (get-cleaned-variable (car vars) vars-to-avoid)))
+        (cons first-cleaned-var
+              (map-get-cleaned (cdr vars) (cons first-cleaned-var vars-to-avoid))))))
+
+
+;;;;  CLEAN-SUFFIXES.SCM
+
+;; Return the body with its free variables unchanged, but its bound variables
+;; renamed with no, or minimum, suffixes.  It will undo ENFORCE.
+;; Works only on kernel (desugared) bodies.
+
+(define (clean-suffixes body)
+  (cond ((or (self-evaluating? body)
+             (symbol-expression? body)
+             (variable? body)
+             (submodel-null? body))
+         body)
+        ((combination? body)
+         (make-combination
+          (clean-suffixes (operator-of body))
+          (map clean-suffixes (operands-of body))))
+        ((lambda-expression? body)
+         (let ((cleaned-lam-body (clean-suffixes (body-of-lambda body)))
+               (formals (formals-of-lambda body)))
+           (let ((vars-to-avoid
+                  (list-minus (free-variables cleaned-lam-body) formals)))
+             (let ((cleaned-formals (map-get-cleaned formals vars-to-avoid)))
+               (make-lambda
+                cleaned-formals
+                (let ((cleaned-renaming (map list formals cleaned-formals)))
+                  ((make-renaming-operator cleaned-renaming) cleaned-lam-body)))))))
+        ((if? body)
+         (make-if
+          (clean-suffixes (test-of-if body))
+          (clean-suffixes (consequent-of body))
+          (clean-suffixes (alternative-of body))))
+        (else
+         (let ((defs (defines-of-body body))
+               (cleaned-exp (clean-suffixes (expression-of-body body))))
+           (let ((cleaned-exps (map clean-suffixes (map expression-of-define defs)))
+                 (vars (map variable-of-define defs)))
+             (let ((cleaned-vars
+                    (map-get-cleaned vars
+                                     (list-minus
+                                      (append
+                                       (free-variables cleaned-exp)
+                                       (append-map free-variables cleaned-exps))
+                                      vars))))
+               (let ((cleaned-renaming (map list vars cleaned-vars)))
+                 (let ((renaming-operator (make-renaming-operator cleaned-renaming)))
+                   (make-body
+                    (map make-define
+                         cleaned-vars
+                         (map renaming-operator cleaned-exps))
+                    (renaming-operator cleaned-exp))))))))))
+
+
+</variable></variable></variable></num></variable></variable></variable><a href="https://dafoster.net/projects/crystal-web-archiver/" id="cr-footer-banner" style="border-top: 2px #B40010 solid;background: #FFFAE1;font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-variant: initial;font-weight: initial;text-transform: none;font-size: 14px;color: #6c757d;line-height: 2.0;cursor: pointer;display: flex;align-items: center;justify-content: center;gap: 4px;clear: both;" target="_blank"><img height="24" onerror="this.style['display'] = 'none';" src="../../_/crystal/resources/appicon.png" width="24"/><span>This page was archived with Crystal</span><script>window.addEventListener('load', function() { const $1 = document.querySelector('#cr-footer-banner'); if (!$1) { return; } if (window !== window.top) { let $2 = false; if (window.name) { const $3 = window.parent.document.getElementsByName(window.name); if ($3.length === 1) { const $4 = $3[0]; if ($4.tagName === 'FRAME' && $4.parentElement.tagName === 'FRAMESET') { let $5 = $4; while (true) { if ($5.parentElement.tagName !== 'FRAMESET') { $2 = true; break; } if ($5.parentElement.attributes['rows'] !== undefined) { const $6 = $5.parentElement.children; if ($5 === $6[$6.length - 1]) { $5 = $5.parentElement; continue; } else { break; } } else if ($5.parentElement.attributes['cols'] !== undefined) { const $7 = Array.from($5.parentElement.children); const $8 = $7.indexOf($5); if ($8 === -1) { break; } const $9 = $5.parentElement.attributes['cols'].value.split(','); const $10 = $9.map((s) => parseInt(s.trim())); if ($9[$8].trim() === '*' || $10[$8] === Math.max.apply(null, $10)) { $5 = $5.parentElement; continue; } else { break; } } else { break; } } } } } if (!$2) { $1.style['display'] = 'none'; } } const $11 = $1.getBoundingClientRect(); const $12 = ($11.y < window.innerHeight - $11.height); if ($12) { $1.style['position'] = 'fixed'; $1.style['bottom'] = '0'; $1.style['left'] = '0'; $1.style['right'] = '0'; $1.style['z-index'] = '9999'; } const $13 = ( document.body.getBoundingClientRect().height < $11.height * 2 ); if ($13) { $1.style['display'] = 'none'; }
+});</script></a></body></body></body></body></variable></variable></num></symbol></symbol></body></body></define></variable></body>
